@@ -3,302 +3,1223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D-Day 및 시계</title>
+    <title>🌱 연동형 학습 진척도 대시보드 (Firestore)</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <style>
         /*
-         * 색상 팔레트:
-         * #F0F5EF - 밝은 배경 또는 요소
-         * #A1BA9A - 주요 요소 또는 강조 색상
+         * ----------------------------------------------------
+         * 1. Pretendard 폰트 (CDN Fallback)
+         * ----------------------------------------------------
          */
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css');
+
+        /*
+         * ----------------------------------------------------
+         * 2. CSS 스타일 및 사용자 요청 테마 (Green & Beige)
+         * ----------------------------------------------------
+         */
+        :root {
+            --font-family: 'Pretendard', sans-serif;
+            --primary-text: #242424;
+            --secondary-text: #888;
+            --background: #F0F5EF; /* 사용자 요청: 연한 베이지/그린 */
+            --card-background: #ffffff;
+            --border-color: #D4E0D2; /* 새로운 색상 기반의 연한 경계선 */
+            --accent-main: #A1BA9A; /* 사용자 요청: 주 강조색 (진한 그린) */
+            --accent-light: #D4E0D2; /* 보조 강조색 (연한 그린) */
+            --shadow-light: 0 2px 5px rgba(0, 0, 0, 0.08);
+            --timeline-bg: #E8EDE7;
+            --progress-color: var(--accent-main);
+            --book-color: var(--accent-main);
+        }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--font-family);
+            background-color: var(--background);
+            color: var(--primary-text);
             margin: 0;
             padding: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #F0F5EF; /* 밝은 배경 */
+            justify-content: center;
             min-height: 100vh;
-            color: #333;
         }
 
-        /* 1. 배경 이미지: -5.jpg */
-        header {
+        .dashboard-container {
             width: 100%;
-            height: 300px;
-            background-image: url('-5.jpg'); /* 사용자가 제공한 파일 이름 */
+            max-width: 1200px;
+            padding: 0 20px 30px; /* 상단 배너를 위해 상단 패딩 제거 */
+        }
+
+        /* ------------------- 상단 배너 (이미지) 스타일 ------------------- */
+        #top-banner {
+            width: 100%;
+            height: 200px; /* 원하는 높이로 조정 가능 */
+            background-image: url('uploaded: -5.jpg-2031be08-6a02-4ba6-98a0-8fd3a3172b8c'); /* 사용자 요청 이미지 */
             background-size: cover;
             background-position: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 40px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            box-shadow: var(--shadow-light);
+            margin-bottom: 30px;
         }
 
-        .container {
-            display: flex;
-            gap: 40px;
-            padding: 20px;
-            max-width: 1200px;
-            width: 90%;
-            margin-top: -150px; /* 헤더 위로 요소 올리기 */
-        }
-
-        /* 공통 카드 스타일 */
-        .card {
-            flex: 1;
-            padding: 30px;
-            background-color: #F0F5EF; /* 밝은 카드 배경 */
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-            min-width: 300px;
-            text-align: center;
-        }
-        
-        /* 2. 시계 디자인 (IMG_3101.PNG 느낌) */
-        #clock-card {
-            border: 2px solid #A1BA9A; /* 강조 색상 테두리 */
-            padding: 40px 30px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(145deg, #f8fcfb, #e0e6e0); /* 은은한 그라데이션 */
-        }
-        
-        #current-time {
-            font-size: 5rem;
+        .section-title {
+            font-size: 1.5em;
             font-weight: 700;
-            color: #A1BA9A; /* 강조 색상으로 시간 표시 */
-            letter-spacing: 3px;
-            margin-bottom: 5px;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+            margin: 30px 0 15px 0;
+            color: var(--primary-text);
         }
-        
-        #current-date {
-            font-size: 1.2rem;
-            color: #777;
-            font-weight: 500;
-        }
+        .section-title i { margin-right: 10px; color: var(--accent-main); }
 
-        /* 3. D-Day 디자인 (인터넷 팝업창 디자인 - IMG_3102.JPG 느낌) */
-        #dday-card {
-            padding: 0; /* 팝업창 디자인을 위해 내부 패딩 제거 */
-            background-color: #F0F5EF;
-            border: 1px solid #A1BA9A; /* 팝업창 테두리 */
-            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2); /* 입체감 있는 그림자 */
-            overflow: hidden;
-        }
-        
-        /* 팝업창 제목 표시줄 */
-        .popup-header {
-            background-color: #A1BA9A; /* 강조 색상 */
-            color: #F0F5EF; /* 밝은 글씨 */
-            padding: 8px 15px;
-            text-align: left;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: move; /* 드래그 가능한 느낌 */
-        }
-        
-        .popup-controls span {
-            margin-left: 8px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            opacity: 0.8;
-        }
-
-        .dday-content {
-            padding: 30px;
-            text-align: center;
-        }
-
-        #dday-output {
-            font-size: 4rem;
-            font-weight: 800;
-            color: #A1BA9A;
-            margin: 10px 0 20px 0;
-        }
-
-        #dday-label {
-            font-size: 1.5rem;
-            color: #555;
+        .card {
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-light);
             margin-bottom: 20px;
         }
 
-        /* 날짜 입력 및 버튼 */
-        input[type="date"] {
-            padding: 10px;
-            border: 1px solid #A1BA9A;
-            border-radius: 5px;
-            margin-right: 10px;
-            font-size: 1rem;
-            color: #333;
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0 20px 0;
         }
-        
-        button {
-            padding: 10px 20px;
-            background-color: #A1BA9A;
-            color: #F0F5EF;
-            border: none;
-            border-radius: 5px;
+        .page-title { font-size: 2.5em; font-weight: 700; }
+
+        #user-info {
+            font-size: 0.8em;
+            color: var(--secondary-text);
+            text-align: right;
+            margin-top: 5px;
+        }
+        #dday-popover-trigger {
+            padding: 8px 15px;
+            background-color: var(--accent-light);
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.9em;
             font-weight: 600;
-            transition: background-color 0.3s;
+            color: var(--primary-text);
+            transition: background 0.2s;
+        }
+        #dday-popover-trigger:hover { background-color: var(--accent-main); color: white; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 30px;
         }
 
-        button:hover {
-            background-color: #8c9f8a;
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
 
-        /* 미디어 쿼리: 모바일 최적화 */
-        @media (max-width: 768px) {
-            header {
-                height: 200px;
-            }
-            .container {
-                flex-direction: column;
-                margin-top: -100px;
-            }
-            #current-time {
-                font-size: 3.5rem;
-            }
-            #dday-output {
-                font-size: 3rem;
-            }
-            .card {
-                min-width: unset;
-            }
-            .dday-content > * {
-                margin-bottom: 10px;
-            }
-            button {
-                width: 100%;
-                margin-top: 10px;
-            }
-            input[type="date"] {
-                width: calc(100% - 22px);
-                margin-bottom: 10px;
-            }
+        /* ------------------- 시계 디자인 (IMG_3101.PNG 반영) ------------------- */
+        #study-timer-card {
+            text-align: center;
+        }
+        #study-timer-display {
+            font-size: 3.5em; /* 크기 확대 */
+            font-weight: 800; /* 굵게 */
+            color: var(--accent-main); /* 강조색 */
+            margin: 10px 0 20px 0;
+            font-family: 'Consolas', 'Courier New', monospace; /* 디지털 느낌 폰트 */
         }
 
+        /* ------------------- 캘린더 스타일 ------------------- */
+        #calendar-view {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            text-align: center;
+        }
+        .day-header { padding: 10px 0; font-weight: 700; color: var(--secondary-text); }
+        .day-cell {
+            padding: 10px 5px;
+            height: 50px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 0.9em;
+            position: relative;
+        }
+        .day-cell:hover, .day-cell.selected { background-color: var(--accent-light); }
+        .day-cell.today { border: 2px solid var(--accent-main); }
+        .day-cell.other-month { color: #ccc; }
+        .day-cell .todo-marker {
+            position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+            width: 5px; height: 5px; background: var(--book-color); border-radius: 50%;
+        }
+
+        /* ------------------- 모달 (팝업창 디자인 - IMG_3102.jpg 반영) ------------------- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            /* 팝업창 디자인 */
+            background-color: var(--card-background);
+            margin: 5% auto;
+            border-top: 25px solid #E0E0E0; /* 팝업창 상단 바 느낌 */
+            border-radius: 5px;
+            width: 80%;
+            max-width: 450px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            position: relative;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .modal-content::before { /* 팝업창 제목 표시줄 텍스트 */
+            content: "디데이 설정";
+            position: absolute;
+            top: -20px;
+            left: 5px;
+            color: var(--primary-text);
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute; /* 팝업창 상단에 X 버튼 배치 */
+            top: -25px;
+            right: 5px;
+            line-height: 25px;
+        }
+        .close-btn:hover { color: #000; }
+
+        /* ------------------- 버튼 스타일 ------------------- */
+        button {
+            background-color: var(--accent-main);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-family: var(--font-family);
+        }
+        button:hover { background-color: #7A9B79; } /* hover 색상 조정 */
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+
+        /* --- 기존 스타일 유지 (타임라인, 목표 테이블, 북 카드 등) --- */
+        #timeline-chart {
+            background-color: var(--timeline-bg);
+            border-radius: 8px;
+            padding: 15px;
+            height: 100%;
+            min-height: 600px;
+            position: relative;
+        }
+        .timeline-hour {
+            font-size: 0.75em;
+            color: var(--secondary-text);
+            position: absolute;
+            left: 5px;
+            width: 95%;
+            border-top: 1px dashed #ddd;
+            padding-left: 35px;
+        }
+        .timeline-block {
+            position: absolute;
+            left: 45px;
+            width: calc(100% - 50px);
+            background-color: var(--accent-light);
+            border-radius: 4px;
+            opacity: 0.85;
+            padding: 2px 5px;
+            font-size: 0.8em;
+            color: var(--primary-text);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .notion-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        .notion-table th, .notion-table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .notion-table th {
+            background-color: var(--accent-light);
+            font-weight: 700;
+        }
+        .notion-table .progress-bar {
+            height: 100%;
+            background: var(--progress-color);
+            transition: width 0.3s;
+        }
+        .notion-table .delete-btn {
+            background: none;
+            border: none;
+            color: #ff5252;
+            cursor: pointer;
+            font-size: 1.1em;
+        }
+        .book-card {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* ------------------- 반응형 디자인 ------------------- */
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .calendar-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
+    <div class="dashboard-container">
 
-    <header></header>
+        <div id="top-banner"></div>
 
-    <div class="container">
-        
-        <div id="clock-card" class="card">
-            <h2>🕰️ 현재 시각</h2>
-            <div id="current-time">00:00:00</div>
-            <div id="current-date">YYYY년 MM월 DD일 (요일)</div>
+        <header>
+            <div>
+                <h1 class="page-title">✏️ Study Dashboard</h1>
+                <div id="user-info"></div>
+            </div>
+            <div id="dday-popover-trigger" onclick="toggleDDayModal()">D-Day</div>
+        </header>
+
+        <div id="dday-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn" onclick="toggleDDayModal()">&times;</span>
+                <h2>시험 목표일 설정</h2>
+                <p id="dday-result" style="font-size: 1.5em; font-weight: 700; color: var(--primary-text); margin-bottom: 20px;">D-Day 계산 중...</p>
+                <label for="dday-input">목표 날짜:</label>
+                <input type="date" id="dday-input" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; margin-top: 5px;">
+                <button onclick="saveDDay()" style="margin-top: 15px; width: 100%;">디데이 저장</button>
+            </div>
         </div>
 
-        <div id="dday-card" class="card">
-            <div class="popup-header">
-                D-Day 계산기 🚀
-                <div class="popup-controls">
-                    <span>—</span>
-                    <span>▢</span>
-                    <span>✕</span>
+        <div class="main-grid">
+            <div>
+                <div class="calendar-grid">
+                    <div id="calendar-card" class="card">
+                        <h2 class="section-title"><i class="fas fa-calendar-alt"></i> 학습 달력</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <button onclick="changeMonth(-1)">&#9664;</button>
+                            <h3 id="month-year-display" style="margin: 0;"></h3>
+                            <button onclick="changeMonth(1)">&#9654;</button>
+                        </div>
+                        <div id="calendar-view">
+                            </div>
+                    </div>
+                    <div id="daily-todo-card" class="card">
+                        <h2 class="section-title"><i class="fas fa-tasks"></i> <span id="selected-date-display">오늘</span>의 할 일</h2>
+                        <div id="todos-list">
+                            <p style="color:var(--secondary-text);">날짜를 선택하거나, 오늘의 할 일을 추가하세요.</p>
+                        </div>
+
+                        <div style="border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 15px;">
+                            <h4 style="margin-top: 0;">할 일 추가</h4>
+                            <select id="todo-book-select" style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px;"></select>
+                            <input type="number" id="todo-start-page" placeholder="시작 페이지" style="width: calc(50% - 5px); padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-right: 5px;">
+                            <input type="number" id="todo-end-page" placeholder="끝 페이지" style="width: calc(50% - 5px); padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-left: 5px;">
+                            <textarea id="todo-note" placeholder="간단한 메모 (선택)" style="width: 100%; padding: 8px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+                            <button onclick="addDailyTodo()" style="width: 100%;">할 일 추가</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="section-title"><i class="fas fa-bullseye"></i> 월간 & 주간 목표</h2>
+                    <h3 style="margin-top: 0;">월간 목표</h3>
+                    <div id="monthly-goal-table-container">
+                        <table id="monthly-goal-table" class="notion-table">
+                            <thead>
+                                <tr><th>목표</th><th>기간</th><th>진척도</th><th>메모</th><th></th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <button onclick="addRow('monthly')" style="margin-top: 10px;">+ 목표 추가</button>
+                    </div>
+
+                    <h3 style="margin-top: 20px;">주간 목표</h3>
+                    <div id="weekly-goal-table-container">
+                        <table id="weekly-goal-table" class="notion-table">
+                            <thead>
+                                <tr><th>목표</th><th>기간</th><th>진척도</th><th>메모</th><th></th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <button onclick="addRow('weekly')" style="margin-top: 10px;">+ 목표 추가</button>
+                    </div>
                 </div>
             </div>
-            
-            <div class="dday-content">
-                <div id="dday-label">목표를 설정해주세요.</div>
-                <div id="dday-output">D-?</div>
-                
-                <input type="date" id="target-date-input">
-                <button onclick="calculateDDay()">D-Day 설정</button>
+
+            <div>
+                <div id="study-timer-card" class="card" style="text-align: center; background-color: var(--accent-light);">
+                    <h2 class="section-title" style="margin-top: 0;"><i class="fas fa-stopwatch"></i> Now Studying</h2>
+                    <div id="study-timer-display">00:00:00</div>
+                    <div class="btn-group" style="justify-content: center;">
+                        <button id="start-btn" onclick="startTimer()">시작</button>
+                        <button id="pause-btn" onclick="pauseTimer()" disabled>일시정지</button>
+                        <button id="reset-btn" onclick="resetTimer()">초기화</button>
+                    </div>
+                    <p style="font-size: 0.9em; color: var(--secondary-text); margin-top: 10px;">* 타이머 기록은 타임라인에 저장됩니다.</p>
+                </div>
+
+                <div class="card">
+                    <h2 class="section-title"><i class="fas fa-chart-bar"></i> 오늘의 학습 타임라인</h2>
+                    <div id="timeline-chart">
+                        <div class="timeline-hour" style="top: 0%;">00:00</div>
+                        <div class="timeline-hour" style="top: 12.5%;">03:00</div>
+                        <div class="timeline-hour" style="top: 25%;">06:00</div>
+                        <div class="timeline-hour" style="top: 37.5%;">09:00</div>
+                        <div class="timeline-hour" style="top: 50%;">12:00</div>
+                        <div class="timeline-hour" style="top: 62.5%;">15:00</div>
+                        <div class="timeline-hour" style="top: 75%;">18:00</div>
+                        <div class="timeline-hour" style="top: 87.5%;">21:00</div>
+                        <div class="timeline-hour" style="top: 100%; border: none;">24:00</div>
+                        </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="section-title"><i class="fas fa-book-open"></i> 문제집 보관함 (Book Shelf)</h2>
+                    <button onclick="openBookModal()">+ 새 문제집 등록</button>
+                    <div id="book-shelf-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                        <p style="color:var(--secondary-text); grid-column: 1 / -1;">등록된 문제집이 없습니다.</p>
+                        </div>
+                </div>
             </div>
         </div>
-
     </div>
 
+    <div id="book-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeBookModal()">&times;</span>
+            <h2>문제집 등록/수정</h2>
+            <input type="hidden" id="book-edit-id">
+            <label for="book-title">제목:</label>
+            <input type="text" id="book-title" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px;">
+
+            <label for="book-pages">총 페이지:</label>
+            <input type="number" id="book-pages" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px;">
+
+            <label for="book-target-pages">목표 페이지 (전체 중 목표):</label>
+            <input type="number" id="book-target-pages" placeholder="진척도 계산 기준" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px;">
+
+            <label for="book-image">표지 이미지 URL (선택):</label>
+            <input type="text" id="book-image" placeholder="https://..." style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px;">
+
+            <label for="book-index">목차 (선택, 나중에 사용):</label>
+            <textarea id="book-index" placeholder="1단원: 10-30p, 2단원: 31-50p" style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 6px; height: 80px;"></textarea>
+
+            <button onclick="saveBook()">저장</button>
+        </div>
+    </div>
+
+
     <script>
-        // 1. 시계 기능 구현 (실시간 상호 작용)
-        function updateClock() {
-            const now = new Date();
-            
-            // 시간 표시
-            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            const timeString = now.toLocaleTimeString('ko-KR', timeOptions);
-            document.getElementById('current-time').textContent = timeString;
-            
-            // 날짜 표시
-            const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-            const dateString = now.toLocaleDateString('ko-KR', dateOptions);
-            document.getElementById('current-date').textContent = dateString;
+        // 현재 날짜를 저장할 변수 (달력용)
+        let currentDate = new Date();
+        let currentYear = currentDate.getFullYear();
+        let currentMonth = currentDate.getMonth();
+        let selectedDate = new Date(); // 상세 할 일을 보여줄 날짜
+        
+        // 데이터 저장소 (Firestore 연동 전 임시 데이터 또는 UI 렌더링용)
+        let monthlyGoalsData = [];
+        let weeklyGoalsData = [];
+        let booksData = [];
+        let dailyTodosData = {}; // key: 'YYYY-MM-DD', value: [todo objects]
+        let studyTimelineData = {}; // key: 'YYYY-MM-DD', value: [time block objects]
+        let userId = 'default_user';
+        let isAuthReady = false;
+
+        // --- D-Day 및 타이머 관련 변수 ---
+        let dDayTargetDate = localStorage.getItem('dDayTargetDate');
+        let timerInterval = null;
+        let studySeconds = 0;
+        let isTimerRunning = false;
+        
+        /*
+         * ----------------------------------------------------
+         * 1. Firebase 설정 (★★★ 사용자님의 정보로 변경 필수! ★★★)
+         * ----------------------------------------------------
+         */
+        const firebaseConfig = {
+            // 여기에 사용자님의 Firebase 설정 정보(apiKey, authDomain 등)를 넣어주세요.
+            // 예시:
+            // apiKey: "YOUR_API_KEY",
+            // authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            // projectId: "YOUR_PROJECT_ID",
+            // ...
+        };
+
+        if (firebaseConfig.apiKey) {
+            const app = firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    userId = user.uid;
+                    document.getElementById('user-info').textContent = `환영합니다, ${user.email}님`;
+                    isAuthReady = true;
+                    initDataListeners(); // 인증되면 데이터 리스너 시작
+                } else {
+                    // 익명 로그인으로 시작 (테스트 및 단일 사용자 환경에 유용)
+                    auth.signInAnonymously().catch((error) => {
+                        console.error("익명 로그인 실패:", error);
+                        document.getElementById('user-info').textContent = "로그인 실패 (Firestore 비활성)";
+                    });
+                }
+            });
+
+            // Firestore 컬렉션 경로를 쉽게 얻기 위한 함수
+            function getUserCollection(collection) {
+                return db.collection('users').doc(userId).collection(collection);
+            }
+
+            // 실시간 데이터 동기화 리스너 설정
+            function initDataListeners() {
+                // 목표 데이터 (월간/주간)
+                ['monthly', 'weekly'].forEach(key => {
+                    db.collection('users').doc(userId).collection(getGoalCollectionName(key))
+                        .onSnapshot((snapshot) => {
+                            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                            if (key === 'monthly') {
+                                monthlyGoalsData = data;
+                            } else {
+                                weeklyGoalsData = data;
+                            }
+                            updateProgressAll(); // 목표 데이터 변경 시 전체 UI 업데이트
+                        }, (error) => console.error(`Error listening to ${key} goals:`, error));
+                });
+
+                // 문제집 데이터
+                db.collection('users').doc(userId).collection('books')
+                    .onSnapshot((snapshot) => {
+                        booksData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        renderBookShelf();
+                        renderTodoBookSelect(document.getElementById('todo-book-select'));
+                        renderTodoBookSelect(document.getElementById('book-select-modal')); // 모달용
+                        updateProgressAll();
+                    }, (error) => console.error("Error listening to books:", error));
+
+                // 일일 할 일 데이터
+                db.collection('users').doc(userId).collection('dailyTodos')
+                    .onSnapshot((snapshot) => {
+                        const data = {};
+                        snapshot.docs.forEach(doc => {
+                            const dateStr = doc.id; // 문서 ID를 날짜 문자열로 사용 (YYYY-MM-DD)
+                            data[dateStr] = doc.data().todos || [];
+                        });
+                        dailyTodosData = data;
+                        renderCalendar(currentYear, currentMonth); // 달력 마커 업데이트
+                        loadDailyTodosUI(formatDate(selectedDate)); // 현재 선택된 날짜의 할 일 업데이트
+                        updateProgressAll(); // 진척도 업데이트
+                    }, (error) => console.error("Error listening to daily todos:", error));
+
+                // 타임라인 데이터
+                db.collection('users').doc(userId).collection('studyTimeline')
+                    .onSnapshot((snapshot) => {
+                        const data = {};
+                        snapshot.docs.forEach(doc => {
+                            const dateStr = doc.id;
+                            data[dateStr] = doc.data().blocks || [];
+                        });
+                        studyTimelineData = data;
+                        renderTimeline(formatDate(selectedDate)); // 현재 선택된 날짜의 타임라인 업데이트
+                    }, (error) => console.error("Error listening to study timeline:", error));
+            }
+
+        } else {
+            document.getElementById('user-info').textContent = "⚠️ Firebase 설정 필요";
         }
 
-        // 1초마다 시계 업데이트
-        setInterval(updateClock, 1000);
-        // 페이지 로드 시 즉시 시계 표시
-        updateClock(); 
 
-        // 2. D-Day 기능 구현 (상호 작용)
-        function calculateDDay() {
-            const inputDate = document.getElementById('target-date-input').value;
-            const outputElement = document.getElementById('dday-output');
-            const labelElement = document.getElementById('dday-label');
+        /*
+         * ----------------------------------------------------
+         * 2. 유틸리티 함수
+         * ----------------------------------------------------
+         */
+
+        function getGoalCollectionName(key) {
+            return key === 'monthly' ? 'monthlyGoals' : 'weeklyGoals';
+        }
+
+        function formatDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseDate(dateStr) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function calculateDDay(targetDateStr) {
+            if (!targetDateStr) return 'D-Day 설정 필요';
+            const target = parseDate(targetDateStr);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // 시간 초기화
+
+            const diffTime = target.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) return 'D-Day';
+            if (diffDays > 0) return `D-${diffDays}`;
+            return `D+${Math.abs(diffDays)}`;
+        }
+
+        /*
+         * ----------------------------------------------------
+         * 3. D-Day / 타이머 기능
+         * ----------------------------------------------------
+         */
+        function toggleDDayModal() {
+            const modal = document.getElementById('dday-modal');
+            const input = document.getElementById('dday-input');
+            const result = document.getElementById('dday-result');
+
+            if (modal.style.display === 'block') {
+                modal.style.display = 'none';
+            } else {
+                modal.style.display = 'block';
+                input.value = dDayTargetDate || '';
+                result.textContent = calculateDDay(dDayTargetDate);
+            }
+        }
+
+        function saveDDay() {
+            const input = document.getElementById('dday-input').value;
+            dDayTargetDate = input;
+            localStorage.setItem('dDayTargetDate', dDayTargetDate);
+            document.getElementById('dday-popover-trigger').textContent = calculateDDay(dDayTargetDate);
+            toggleDDayModal();
+        }
+
+        // 초기 D-Day 설정
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('dday-popover-trigger').textContent = calculateDDay(dDayTargetDate);
+        });
+
+        function startTimer() {
+            if (isTimerRunning) return;
+            isTimerRunning = true;
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('pause-btn').disabled = false;
+            document.getElementById('reset-btn').disabled = false;
+
+            timerInterval = setInterval(() => {
+                studySeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            if (!isTimerRunning) return;
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('pause-btn').disabled = true;
             
-            if (!inputDate) {
-                alert("목표 날짜를 선택해 주세요!");
+            // 1분 이상 타이머가 돌았으면 기록 저장
+            if (studySeconds >= 60) {
+                saveStudyBlock(studySeconds);
+            }
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            studySeconds = 0;
+            updateTimerDisplay();
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('pause-btn').disabled = true;
+            document.getElementById('reset-btn').disabled = true;
+        }
+
+        function updateTimerDisplay() {
+            const h = Math.floor(studySeconds / 3600);
+            const m = Math.floor((studySeconds % 3600) / 60);
+            const s = studySeconds % 60;
+            const timeStr = [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+            document.getElementById('study-timer-display').textContent = timeStr;
+        }
+
+        async function saveStudyBlock(durationSeconds) {
+            if (!isAuthReady) return console.error("Auth not ready. Cannot save study block.");
+            const dateStr = formatDate(new Date()); // 현재 날짜
+            const durationMinutes = Math.ceil(durationSeconds / 60); // 분 단위로 저장
+            const now = new Date();
+            const endTime = now.getHours() * 60 + now.getMinutes(); // 끝나는 시간 (분 단위)
+            const startTime = endTime - durationMinutes;
+
+            const newBlock = {
+                startTime: startTime,
+                duration: durationMinutes,
+                note: '집중 학습 시간',
+                // bookId 등 추가 정보는 타이머에 연결하기 복잡하므로 단순 시간 블록만 저장
+            };
+
+            try {
+                const docRef = getUserCollection('studyTimeline').doc(dateStr);
+                await db.runTransaction(async (transaction) => {
+                    const doc = await transaction.get(docRef);
+                    const blocks = doc.exists ? doc.data().blocks : [];
+
+                    // 새 블록 추가
+                    blocks.push(newBlock);
+                    // 시간순 정렬
+                    blocks.sort((a, b) => a.startTime - b.startTime);
+
+                    transaction.set(docRef, { blocks: blocks }, { merge: true });
+                });
+                console.log("Study block saved successfully.");
+                renderTimeline(dateStr); // UI 업데이트
+            } catch (e) {
+                console.error("Error saving study block:", e);
+            }
+        }
+
+
+        /*
+         * ----------------------------------------------------
+         * 4. 달력 및 할 일 기능
+         * ----------------------------------------------------
+         */
+        function renderCalendar(year, month) {
+            const display = document.getElementById('month-year-display');
+            display.textContent = `${year}년 ${month + 1}월`;
+
+            const calendar = document.getElementById('calendar-view');
+            calendar.innerHTML = '';
+
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            dayNames.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const lastDateOfMonth = new Date(year, month + 1, 0).getDate();
+            const lastDateOfPrevMonth = new Date(year, month, 0).getDate();
+
+            // 이전 달 날짜 채우기
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const prevDay = lastDateOfPrevMonth - firstDayOfMonth + i + 1;
+                const cell = document.createElement('div');
+                cell.className = 'day-cell other-month';
+                cell.textContent = prevDay;
+                calendar.appendChild(cell);
+            }
+
+            // 현재 달 날짜 채우기
+            for (let date = 1; date <= lastDateOfMonth; date++) {
+                const dateObj = new Date(year, month, date);
+                const dateStr = formatDate(dateObj);
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                cell.textContent = date;
+                cell.dataset.date = dateStr;
+                cell.onclick = () => selectDate(dateObj);
+
+                // 오늘 날짜 표시
+                if (dateStr === formatDate(new Date())) {
+                    cell.classList.add('today');
+                }
+                // 선택된 날짜 표시
+                if (dateStr === formatDate(selectedDate)) {
+                    cell.classList.add('selected');
+                }
+                
+                // 할 일 마커 표시
+                const todos = dailyTodosData[dateStr] || [];
+                if (todos.length > 0) {
+                    const marker = document.createElement('div');
+                    marker.className = 'todo-marker';
+                    cell.appendChild(marker);
+                }
+
+                calendar.appendChild(cell);
+            }
+        }
+
+        function changeMonth(delta) {
+            currentDate.setMonth(currentMonth + delta);
+            currentYear = currentDate.getFullYear();
+            currentMonth = currentDate.getMonth();
+            renderCalendar(currentYear, currentMonth);
+        }
+
+        function selectDate(dateObj) {
+            selectedDate = dateObj;
+            renderCalendar(currentYear, currentMonth); // UI 업데이트
+            
+            const dateStr = formatDate(selectedDate);
+            document.getElementById('selected-date-display').textContent = dateStr === formatDate(new Date()) ? '오늘' : dateStr;
+            loadDailyTodosUI(dateStr);
+            renderTimeline(dateStr);
+        }
+
+        function loadDailyTodosUI(dateStr) {
+            const todos = dailyTodosData[dateStr] || [];
+            const list = document.getElementById('todos-list');
+            list.innerHTML = '';
+
+            if (todos.length === 0) {
+                list.innerHTML = `<p style="color:var(--secondary-text);">이 날짜의 할 일이 없습니다.</p>`;
                 return;
             }
 
-            const targetDate = new Date(inputDate);
-            const today = new Date();
-            
-            // 시간을 무시하고 날짜만 비교하기 위해 자정으로 설정
-            targetDate.setHours(0, 0, 0, 0);
-            today.setHours(0, 0, 0, 0);
+            todos.forEach((todo, index) => {
+                const book = booksData.find(b => b.id === todo.bookId) || { title: '알 수 없음', id: todo.bookId };
+                
+                const item = document.createElement('div');
+                item.style.display = 'flex';
+                item.style.alignItems = 'center';
+                item.style.marginBottom = '10px';
 
-            // 두 날짜 간의 밀리초 차이 계산
-            const timeDiff = targetDate.getTime() - today.getTime();
-            
-            // 밀리초를 일(day)로 변환
-            const dayDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+                item.innerHTML = `
+                    <input type="checkbox" id="todo-${dateStr}-${index}" ${todo.checked ? 'checked' : ''} onchange="toggleTodo('${dateStr}', ${index})" style="margin-right: 10px; transform: scale(1.2);">
+                    <label for="todo-${dateStr}-${index}" style="flex-grow: 1; ${todo.checked ? 'text-decoration: line-through; color: var(--secondary-text);' : ''}">
+                        [${book.title}] ${todo.startPage}p ~ ${todo.endPage}p (${(todo.endPage - todo.startPage) + 1}p)
+                        <span style="font-size: 0.8em; display: block; color: ${todo.checked ? 'inherit' : '#555'};">${todo.note || ''}</span>
+                    </label>
+                    <button style="background:none; color:#ff5252; padding:5px; border-radius:50%; font-size:1.1em;" onclick="deleteTodo('${dateStr}', ${index})">&times;</button>
+                `;
+                list.appendChild(item);
+            });
+        }
 
-            const targetLabel = targetDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-            
-            if (dayDiff > 0) {
-                // 미래: D-Day
-                outputElement.textContent = `D-${dayDiff}`;
-                labelElement.textContent = `목표일 (${targetLabel})까지 남은 날`;
-            } else if (dayDiff < 0) {
-                // 과거: D+Day
-                outputElement.textContent = `D+${Math.abs(dayDiff)}`;
-                labelElement.textContent = `목표일 (${targetLabel})로부터 지난 날`;
+        function renderTodoBookSelect(selectElement) {
+            selectElement.innerHTML = booksData.map(book => 
+                `<option value="${book.id}">${book.title}</option>`
+            ).join('');
+            if (booksData.length === 0) {
+                selectElement.innerHTML = '<option value="">문제집을 먼저 등록하세요</option>';
+                selectElement.disabled = true;
             } else {
-                // 오늘: D-Day
-                outputElement.textContent = `D-DAY`;
-                labelElement.textContent = `오늘은 바로 그날! (${targetLabel})`;
-            }
-
-            // 설정한 날짜를 localStorage에 저장하여 페이지 로드 시 유지되도록 함
-            localStorage.setItem('ddayTargetDate', inputDate);
-        }
-
-        // 페이지 로드 시 저장된 D-Day 설정 복원
-        function loadDDay() {
-            const savedDate = localStorage.getItem('ddayTargetDate');
-            if (savedDate) {
-                document.getElementById('target-date-input').value = savedDate;
-                calculateDDay(); // 저장된 날짜로 D-Day 다시 계산
+                selectElement.disabled = false;
             }
         }
 
-        // 페이지 로드 완료 후 실행
-        window.onload = loadDDay;
+        // Firestore: 일일 할 일 추가
+        async function addDailyTodo() {
+            if (!isAuthReady) return console.error("Auth not ready. Cannot add todo.");
+            const dateStr = formatDate(selectedDate);
+            const bookId = document.getElementById('todo-book-select').value;
+            const startPage = parseInt(document.getElementById('todo-start-page').value);
+            const endPage = parseInt(document.getElementById('todo-end-page').value);
+            const note = document.getElementById('todo-note').value;
+
+            if (!bookId || isNaN(startPage) || isNaN(endPage) || startPage <= 0 || endPage < startPage) {
+                alert('문제집 선택과 유효한 페이지 범위(시작 > 0, 끝 >= 시작)를 입력해주세요.');
+                return;
+            }
+
+            const newTodo = { bookId, startPage, endPage, note, checked: false };
+            
+            try {
+                const docRef = getUserCollection('dailyTodos').doc(dateStr);
+                await db.runTransaction(async (transaction) => {
+                    const doc = await transaction.get(docRef);
+                    const todos = doc.exists ? doc.data().todos : [];
+                    todos.push(newTodo);
+                    transaction.set(docRef, { todos: todos }, { merge: true });
+                });
+
+                // 입력 필드 초기화
+                document.getElementById('todo-start-page').value = '';
+                document.getElementById('todo-end-page').value = '';
+                document.getElementById('todo-note').value = '';
+
+                console.log(`Todo added for ${dateStr}.`);
+                // UI는 onSnapshot으로 자동 업데이트됩니다.
+            } catch (e) {
+                console.error("Error adding daily todo:", e);
+            }
+        }
+
+        // Firestore: 할 일 상태 토글
+        async function toggleTodo(dateStr, index) {
+            if (!isAuthReady) return console.error("Auth not ready. Cannot toggle todo.");
+            try {
+                const docRef = getUserCollection('dailyTodos').doc(dateStr);
+                await db.runTransaction(async (transaction) => {
+                    const doc = await transaction.get(docRef);
+                    if (!doc.exists) return;
+                    
+                    const todos = doc.data().todos;
+                    if (todos[index]) {
+                        todos[index].checked = !todos[index].checked;
+                        transaction.update(docRef, { todos: todos });
+                    }
+                });
+                console.log(`Todo ${index} toggled for ${dateStr}.`);
+            } catch (e) {
+                console.error("Error toggling todo:", e);
+            }
+        }
+
+        // Firestore: 할 일 삭제
+        async function deleteTodo(dateStr, index) {
+            if (!isAuthReady) return console.error("Auth not ready. Cannot delete todo.");
+            try {
+                const docRef = getUserCollection('dailyTodos').doc(dateStr);
+                await db.runTransaction(async (transaction) => {
+                    const doc = await transaction.get(docRef);
+                    if (!doc.exists) return;
+                    
+                    const todos = doc.data().todos;
+                    if (todos[index]) {
+                        todos.splice(index, 1); // 배열에서 삭제
+                        transaction.set(docRef, { todos: todos }, { merge: true }); // 업데이트
+                    }
+                });
+                console.log(`Todo ${index} deleted for ${dateStr}.`);
+            } catch (e) {
+                console.error("Error deleting todo:", e);
+            }
+        }
+
+        /*
+         * ----------------------------------------------------
+         * 5. 타임라인 기능
+         * ----------------------------------------------------
+         */
+        function renderTimeline(dateStr) {
+            const chart = document.getElementById('timeline-chart');
+            const blocks = studyTimelineData[dateStr] || [];
+            
+            // 기존 블록 제거 (시간 표시 요소 제외)
+            Array.from(chart.children).forEach(child => {
+                if (child.classList.contains('timeline-block')) {
+                    child.remove();
+                }
+            });
+
+            // 새 블록 렌더링
+            blocks.forEach(block => {
+                const { startTime, duration, note } = block; // startTime: 0시부터 분 단위
+                
+                const totalMinutes = 24 * 60;
+                const topPercent = (startTime / totalMinutes) * 100;
+                const heightPercent = (duration / totalMinutes) * 100;
+
+                const blockDiv = document.createElement('div');
+                blockDiv.className = 'timeline-block';
+                blockDiv.style.top = `${topPercent}%`;
+                blockDiv.style.height = `${heightPercent}%`;
+                blockDiv.textContent = `${note || '학습 시간'} (${duration}분)`;
+                
+                chart.appendChild(blockDiv);
+            });
+        }
+
+        /*
+         * ----------------------------------------------------
+         * 6. 목표 및 문제집 기능 (기존 로직 유지)
+         * ----------------------------------------------------
+         */
+
+        // 목표 진척도 계산
+        function calculateGoalProgress(goalItem) {
+            const book = booksData.find(b => b.id === goalItem.bookId);
+            if (!book) return { completed: 0, total: 0, percent: 0 };
+            
+            // 목표 기간 내 완료된 페이지 합산
+            let completedPages = 0;
+            const totalTargetPages = parseInt(goalItem.targetPages) || 0;
+            
+            if (totalTargetPages === 0) return { completed: 0, total: 0, percent: 0 };
+
+            // 목표 기간 설정 (월간 목표는 현재 월/주간 목표는 전체 기간)
+            const startDate = goalItem.startDate ? parseDate(goalItem.startDate) : new Date(0);
+            const endDate = goalItem.endDate ? parseDate(goalItem.endDate) : new Date(8640000000000000);
+            
+            for (const dateStr in dailyTodosData) {
+                const date = parseDate(dateStr);
+                // 목표 기간 내의 데이터만 확인
+                if (date >= startDate && date <= endDate) {
+                    const todosOnDate = dailyTodosData[dateStr] || [];
+                    todosOnDate.forEach(todo => {
+                        if (todo.checked && todo.bookId === book.id && todo.startPage && todo.endPage) {
+                            completedPages += (todo.endPage - todo.startPage) + 1;
+                        }
+                    });
+                }
+            }
+            
+            const percent = totalTargetPages > 0 ?  
+                Math.min(100, Math.round((completedPages / totalTargetPages) * 100)) : 0;
+            
+            return {
+                completed: completedPages,
+                total: totalTargetPages,
+                percent: percent
+            };
+        }
+
+        // 문제집 진척도 자동 계산 (전체 기간)
+        function calculateBookProgress(bookItem) {
+            let completedPages = 0;
+            const totalTargetPages = bookItem.targetPages || bookItem.pages || 0;
+
+            if (totalTargetPages === 0) {
+                return { completed: 0, total: 0, percent: 0 };
+            }
+
+            for (const dateStr in dailyTodosData) {
+                const todosOnDate = dailyTodosData[dateStr] || [];
+                todosOnDate.forEach(todo => {
+                    if (todo.checked && todo.bookId === bookItem.id && todo.startPage && todo.endPage) {
+                        completedPages += (todo.endPage - todo.startPage) + 1;
+                    }
+                });
+            }
+
+            const percent = totalTargetPages > 0 ?
+                Math.min(100, Math.round((completedPages / totalTargetPages) * 100)) : 0;
+
+            return {
+                completed: completedPages,
+                total: totalTargetPages,
+                percent: percent
+            };
+        }
+
+        function updateProgressAll() {
+            loadGoalsUI('monthly');
+            loadGoalsUI('weekly');
+            renderBookShelf();
+        }
+
+        // 목표 UI 렌더링
+        function loadGoalsUI(key) {
+            const tableBody = document.querySelector(`#${key}-goal-table tbody`);
+            tableBody.innerHTML = '';
+            const data = key === 'monthly' ? monthlyGoalsData : weeklyGoalsData;
+
+            data.forEach(item => {
+                const progress = calculateGoalProgress(item);
+                const bookOptions = renderBookOptions(item.bookId);
+
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                <td>
+                    <input type="text" value="${item.goal || ''}" onchange="updateGoal('${key}', '${item.id}', 'goal', this.value)">
+                    <div style="font-size:0.8em; color:var(--secondary-text); margin-top: 5px;">
+                        <select onchange="updateGoal('${key}', '${item.id}', 'bookId', this.value)">
+                            <option value="">- 문제집 선택 -</option>
+                            ${bookOptions}
+                        </select>
+                        <input type="number" value="${item.targetPages || 0}" placeholder="목표 페이지 수" onchange="updateGoal('${key}', '${item.id}', 'targetPages', parseInt(this.value) || 0)" style="width: 80px; margin-left: 5px;">
+                    </div>
+                </td>
+                <td>
+                    <input type="date" value="${item.startDate || ''}" onchange="updateGoal('${key}', '${item.id}', 'startDate', this.value)"> ~ 
+                    <input type="date" value="${item.endDate || ''}" onchange="updateGoal('${key}', '${item.id}', 'endDate', this.value)">
+                </td>
+                <td>
+                    <div class="progress-bar-container" style="height: 10px;">
+                        <div class="progress-bar" style="width: ${progress.percent}%;"></div>
+                    </div>
+                    <span style="font-size: 0.8em; margin-top: 5px; display: block;">
+                        ${progress.percent}% (${progress.completed}/${progress.total}p)
+                    </span>
+                </td>
+                <td><input type="text" value="${item.note || ''}" onchange="updateGoal('${key}', '${item.id}', 'note', this.value)"></td>
+                <td><button class="delete-btn" onclick="deleteRow('${key}', '${item.id}')">&times;</button></td>
+                `;
+            });
+        }
+
+        function renderBookOptions(selectedBookId) {
+            let options = '';
+            booksData.forEach(book => {
+                options += `<option value="${book.id}" ${book.id === selectedBookId ? 'selected' : ''}>${book.title}</option>`;
+            });
+            return options;
+        }
+
+        // Firestore: 목표 추가
+        async function addRow(key) {
+            if (!isAuthReady) return console.error("Auth not ready. Cannot add goal.");
+            const collectionName = getGoalCollectionName(key);
+
+            const newItem = {
+                startDate: key === 'monthly' ? formatDate(new Date(currentYear, currentMonth, 1)) : '',
+                endDate: key === 'monthly' ? formatDate(new Date(currentYear, currentMonth + 1, 0)) : '',
+                goal: `새 ${key} 목표`,
+                bookId: '',
+                targetPages: 0,
+                note: ''
+            };
+
+            try {
+                await db.collection('users').doc(userId).collection(collectionName).add(newItem);
+                console.log(`${key} goal added.`);
+            } catch (e) {
+                console.error(`Error adding ${key} goal:`, e);
+            }
+        }
+
+        // Firestore: 목표 수정
+        async function updateGoal(key, docId, field, value) {
+            if (!isAuthReady) return console.error("Auth not ready. Cannot update goal.");
+            const collectionName = getGoalCollectionName(key);
+
+            try {
+                const goalRef = db.collection('users').doc(userId).collection(collectionName).doc(docId);
+                await goalRef.update({ [field]: value });
+                console.log(`Goal ${docId} updated: ${field} = ${value}`);
+            } catch (e) {
+                console.error(`Error updating ${key} goal:`, e);
+            }
+        }
+
+        // Firestore: 목표 삭제
+        async function deleteRow(key, docId) {
+            if (!isAuthReady) return console.error("Auth not ready. Cannot delete goal.");
+            if (!confirm("정말로 이 목표를 삭제하시겠습니까?")) return;
+            const collectionName = getGoalCollectionName(key);
+
+            try {
+                await db.collection('users').doc(userId).collection(collectionName).doc(docId).delete();
+                console.log(`Goal ${docId} deleted.`);
+            } catch (e) {
+                console.error(`Error deleting ${key} goal:`, e);
+            }
+        }
+
+        // 문제집 UI 렌더링
+        function renderBookShelf() {
+            const grid = document.getElementById('book-shelf-grid');
+            grid.innerHTML = '';
+            
+            if (booksData.length === 0) {
+                grid.innerHTML = '<p style="color:var(--secondary-text); grid-column: 1 / -1;">등록된 문제집이 없습니다.</p>';
+            }
+
+            booksData.forEach(book => {
+                const progress = calculateBookProgress(book);
+                const card = document.createElement('div');
+                card.className = 'book-card';
+                card.style.cursor = 'pointer';
+                card.onclick = () => openBookModal(book);
+
+                const defaultImage = `https://placehold.co/100x150/bbdefb/444?text=${encodeURIComponent(book.title.substring(0, 10))}`;
+                const imageUrl = book.image || defaultImage;
+
+                card.innerHTML = `
+                <div style="background-color: var(--card-background); padding: 15px;">
+                    <div class="book-info" style="display: flex; align-items: flex-start; gap: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px;">
+                        <img src="${imageUrl}" alt="${book.title} 표지" onerror="this.onerror=null; this.src='${defaultImage}'" style="width: 80px; height: 120px; object-fit: cover; border-radius: 4px; box-shadow: var(--shadow-light);">
+                        <div style="flex-grow: 1;">
+                            <h4 style="margin: 0; font-weight: 700; color: var(--accent-main);">${book.title}</h4>
+                            <p style="margin: 5px 0 0 0; font-size: 0.85em; color: var(--secondary-text);">총 ${book.pages || '?'}p | 목표 ${book.targetPages || 0}p</p>
+                        </div>
+                    </div>
+
+                    <div class="book-progress-text" style="font-size: 0.9em; font-weight: 600; margin-top: 5px;">수행률: ${progress.percent}%</div>
+                    <div class="progress-bar-container" style="height: 8px; background: #eee; border-radius: 5px; overflow: hidden; width: 100%;">
+                        <div class="progress-bar" style="width: ${progress.percent}%;"></div>
+                    </div>
+                    <p style="font-size: 0.8em; color: var(--secondary-text); margin-top: 5px;">${progress.completed} / ${progress.total} 페이지 완료</p>
+                    <button onclick="event.stopPropagation(); deleteBook('${book.id}')" style="background: #ff5252; padding: 5px 10px; margin-top: 10px; font-size: 0.8em;">삭제</button>
+                </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openBookModal(book = null) {
+            const modal = document.getElementById('book-modal');
+
+            document.getElementById('book-edit-id').value = book ? book.id : '';
+            document.getElementById('book-title').value = book ? book.title : '';
+            document.getElementById('book-image').value = book ? book.image : '';
+            document.getElementById('book-pages').value = book ? book.pages : '';
+            document.getElementById('book-target-pages').value = book ? book.targetPages : '';
+            document.getElementById('book-index').value = book ? book.index : '';
+
+            modal.style.display = 'block';
+        }
+
+        function closeBookModal() {
+            document.getElementById('book-modal').style.display = 'none';
+        }
+
+        // Firestore: 문제집 저장/수정
+        async function saveBook() {
+            if (!isAuthReady) return console.error("Auth not ready. Cannot save book.");
+            const bookId = document.getElementById('book-edit-id').value;
+            const title = document.getElementById('book-title').value;
+            const pages = parseInt(document.getElementById('book-pages').value) || 0;
+            const targetPages = parseInt(document.getElementById('book-target-pages').value) || pages;
+            const image = document.getElementById('book-image').value;
+            const index = document.getElementById('book-index').value;
+
+            if (!title) { alert('제목은 필수입니다.'); return; }
+            if (pages <= 0) { alert('총 페이지 수를 입력해주세요.'); return; }
+
+            const bookData = { title, pages, targetPages, image, index };
+
+            try {
+                if (bookId) {
+                    // 수정
+                    await db.collection('users').doc(userId).collection('books').doc(bookId).update(bookData);
+                    console.log(`Book ${bookId} updated.`);
+                } else {
+                    // 등록
+                    await db.collection('users').doc(userId).collection('books').add(bookData);
+                    console.log('New book added.');
+                }
+                closeBookModal();
+            } catch (e) {
+                console.error("Error saving book:", e);
+            }
+        }
+
+        // Firestore: 문제집 삭제
+        async function deleteBook(docId) {
+            if (!isAuthReady) return console.error("Auth not ready. Cannot delete book.");
+            if (!confirm("정말로 이 문제집을 삭제하시겠습니까? 관련 목표 및 할 일 데이터는 남아있습니다.")) return;
+            try {
+                await db.collection('users').doc(userId).collection('books').doc(docId).delete();
+                console.log(`Book ${docId} deleted.`);
+                // onSnapshot에 의해 UI 자동 업데이트
+            } catch (e) {
+                console.error("Error deleting book:", e);
+            }
+        }
+
+        // 초기 실행
+        updateTimerDisplay(); // 타이머 디스플레이 초기화
+        renderCalendar(currentYear, currentMonth); // 달력 초기 렌더링
+        selectDate(new Date()); // 오늘 날짜를 선택된 날짜로 설정
     </script>
-
 </body>
 </html>
