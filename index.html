@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-Day 및 시계</title>
+    <style>
+        /*
+         * 색상 팔레트:
+         * #F0F5EF - 밝은 배경 또는 요소
+         * #A1BA9A - 주요 요소 또는 강조 색상
+         */
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #F0F5EF; /* 밝은 배경 */
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* 1. 배경 이미지: -5.jpg */
+        header {
+            width: 100%;
+            height: 300px;
+            background-image: url('-5.jpg'); /* 사용자가 제공한 파일 이름 */
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            padding: 20px;
+            max-width: 1200px;
+            width: 90%;
+            margin-top: -150px; /* 헤더 위로 요소 올리기 */
+        }
+
+        /* 공통 카드 스타일 */
+        .card {
+            flex: 1;
+            padding: 30px;
+            background-color: #F0F5EF; /* 밝은 카드 배경 */
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            min-width: 300px;
+            text-align: center;
+        }
+        
+        /* 2. 시계 디자인 (IMG_3101.PNG 느낌) */
+        #clock-card {
+            border: 2px solid #A1BA9A; /* 강조 색상 테두리 */
+            padding: 40px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(145deg, #f8fcfb, #e0e6e0); /* 은은한 그라데이션 */
+        }
+        
+        #current-time {
+            font-size: 5rem;
+            font-weight: 700;
+            color: #A1BA9A; /* 강조 색상으로 시간 표시 */
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        #current-date {
+            font-size: 1.2rem;
+            color: #777;
+            font-weight: 500;
+        }
+
+        /* 3. D-Day 디자인 (인터넷 팝업창 디자인 - IMG_3102.JPG 느낌) */
+        #dday-card {
+            padding: 0; /* 팝업창 디자인을 위해 내부 패딩 제거 */
+            background-color: #F0F5EF;
+            border: 1px solid #A1BA9A; /* 팝업창 테두리 */
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2); /* 입체감 있는 그림자 */
+            overflow: hidden;
+        }
+        
+        /* 팝업창 제목 표시줄 */
+        .popup-header {
+            background-color: #A1BA9A; /* 강조 색상 */
+            color: #F0F5EF; /* 밝은 글씨 */
+            padding: 8px 15px;
+            text-align: left;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move; /* 드래그 가능한 느낌 */
+        }
+        
+        .popup-controls span {
+            margin-left: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .dday-content {
+            padding: 30px;
+            text-align: center;
+        }
+
+        #dday-output {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #A1BA9A;
+            margin: 10px 0 20px 0;
+        }
+
+        #dday-label {
+            font-size: 1.5rem;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        /* 날짜 입력 및 버튼 */
+        input[type="date"] {
+            padding: 10px;
+            border: 1px solid #A1BA9A;
+            border-radius: 5px;
+            margin-right: 10px;
+            font-size: 1rem;
+            color: #333;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #A1BA9A;
+            color: #F0F5EF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #8c9f8a;
+        }
+
+        /* 미디어 쿼리: 모바일 최적화 */
+        @media (max-width: 768px) {
+            header {
+                height: 200px;
+            }
+            .container {
+                flex-direction: column;
+                margin-top: -100px;
+            }
+            #current-time {
+                font-size: 3.5rem;
+            }
+            #dday-output {
+                font-size: 3rem;
+            }
+            .card {
+                min-width: unset;
+            }
+            .dday-content > * {
+                margin-bottom: 10px;
+            }
+            button {
+                width: 100%;
+                margin-top: 10px;
+            }
+            input[type="date"] {
+                width: calc(100% - 22px);
+                margin-bottom: 10px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <header></header>
+
+    <div class="container">
+        
+        <div id="clock-card" class="card">
+            <h2>🕰️ 현재 시각</h2>
+            <div id="current-time">00:00:00</div>
+            <div id="current-date">YYYY년 MM월 DD일 (요일)</div>
+        </div>
+
+        <div id="dday-card" class="card">
+            <div class="popup-header">
+                D-Day 계산기 🚀
+                <div class="popup-controls">
+                    <span>—</span>
+                    <span>▢</span>
+                    <span>✕</span>
+                </div>
+            </div>
+            
+            <div class="dday-content">
+                <div id="dday-label">목표를 설정해주세요.</div>
+                <div id="dday-output">D-?</div>
+                
+                <input type="date" id="target-date-input">
+                <button onclick="calculateDDay()">D-Day 설정</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. 시계 기능 구현 (실시간 상호 작용)
+        function updateClock() {
+            const now = new Date();
+            
+            // 시간 표시
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            const timeString = now.toLocaleTimeString('ko-KR', timeOptions);
+            document.getElementById('current-time').textContent = timeString;
+            
+            // 날짜 표시
+            const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            const dateString = now.toLocaleDateString('ko-KR', dateOptions);
+            document.getElementById('current-date').textContent = dateString;
+        }
+
+        // 1초마다 시계 업데이트
+        setInterval(updateClock, 1000);
+        // 페이지 로드 시 즉시 시계 표시
+        updateClock(); 
+
+        // 2. D-Day 기능 구현 (상호 작용)
+        function calculateDDay() {
+            const inputDate = document.getElementById('target-date-input').value;
+            const outputElement = document.getElementById('dday-output');
+            const labelElement = document.getElementById('dday-label');
+            
+            if (!inputDate) {
+                alert("목표 날짜를 선택해 주세요!");
+                return;
+            }
+
+            const targetDate = new Date(inputDate);
+            const today = new Date();
+            
+            // 시간을 무시하고 날짜만 비교하기 위해 자정으로 설정
+            targetDate.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0);
+
+            // 두 날짜 간의 밀리초 차이 계산
+            const timeDiff = targetDate.getTime() - today.getTime();
+            
+            // 밀리초를 일(day)로 변환
+            const dayDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+            const targetLabel = targetDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+            
+            if (dayDiff > 0) {
+                // 미래: D-Day
+                outputElement.textContent = `D-${dayDiff}`;
+                labelElement.textContent = `목표일 (${targetLabel})까지 남은 날`;
+            } else if (dayDiff < 0) {
+                // 과거: D+Day
+                outputElement.textContent = `D+${Math.abs(dayDiff)}`;
+                labelElement.textContent = `목표일 (${targetLabel})로부터 지난 날`;
+            } else {
+                // 오늘: D-Day
+                outputElement.textContent = `D-DAY`;
+                labelElement.textContent = `오늘은 바로 그날! (${targetLabel})`;
+            }
+
+            // 설정한 날짜를 localStorage에 저장하여 페이지 로드 시 유지되도록 함
+            localStorage.setItem('ddayTargetDate', inputDate);
+        }
+
+        // 페이지 로드 시 저장된 D-Day 설정 복원
+        function loadDDay() {
+            const savedDate = localStorage.getItem('ddayTargetDate');
+            if (savedDate) {
+                document.getElementById('target-date-input').value = savedDate;
+                calculateDDay(); // 저장된 날짜로 D-Day 다시 계산
+            }
+        }
+
+        // 페이지 로드 완료 후 실행
+        window.onload = loadDDay;
+    </script>
+
+</body>
+</html>
